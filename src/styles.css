@@ -1,0 +1,492 @@
+:root {
+  --bg: #020308;
+  --ink: #f4f7f2;
+  --muted: rgba(244, 247, 242, 0.72);
+  --accent: #9ccc65;
+  --accent-deep: #6f9e3a;
+  --glass: rgba(8, 12, 16, 0.58);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --display: 'Bebas Neue', Impact, sans-serif;
+  --body: 'Inter', system-ui, sans-serif;
+  --radius: 14px;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  --anti-flicker: opacity 120ms linear, transform 120ms linear;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#track {
+  height: 2000vh; /* plan said 1600vh; lengthened so photos and cards hold ≥ ~800px of scroll */
+}
+
+/* ---------- Background layers ---------- */
+
+#stars {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+#stars canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#map {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: transparent; /* the starfield behind supplies the #020308 */
+}
+
+/* The map never receives input; attribution stays readable but not clickable. */
+#map,
+#map * {
+  pointer-events: none !important;
+}
+
+#map .maplibregl-ctrl-bottom-right {
+  bottom: 34px; /* clear of the progress bar and its day labels */
+}
+
+#map .maplibregl-ctrl-attrib {
+  background: rgba(8, 12, 16, 0.55);
+  color: var(--muted);
+  font: 11px/18px var(--body);
+  border-radius: 6px 0 0 6px;
+}
+
+#map .maplibregl-ctrl-attrib a {
+  color: var(--muted);
+}
+
+/* ---------- Fixed UI layer ---------- */
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+#ui > * {
+  position: absolute;
+  transition: var(--anti-flicker);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font: 600 12px/1.4 var(--body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.card-title {
+  margin: 0 0 14px;
+  font: 400 44px/0.95 var(--display);
+  letter-spacing: 0.01em;
+}
+
+.body {
+  margin: 0;
+  font: 400 16px/1.55 var(--body);
+  color: var(--ink);
+}
+
+.stats {
+  margin: 0 0 14px;
+  font: 500 13px/1.4 var(--body);
+  color: var(--muted);
+}
+
+/* Hero */
+
+.hero {
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.7);
+}
+
+.hero .eyebrow {
+  font-size: 14px;
+  letter-spacing: 0.3em;
+}
+
+.hero-title {
+  margin: 0;
+  max-width: 14ch;
+  font: 400 clamp(72px, 9vw, 128px) / 0.92 var(--display);
+  letter-spacing: 0.01em;
+}
+
+.hero-sub {
+  margin: 18px 0 0;
+  font: 400 20px/1.4 var(--body);
+  color: var(--muted);
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font: 500 12px/1 var(--body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg);
+  animation: bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(45deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(45deg);
+  }
+}
+
+/* Cards */
+
+.card {
+  top: 50%;
+  width: 440px;
+  max-width: 440px;
+  padding: 28px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.card-left {
+  left: 6vw;
+}
+
+.card-right {
+  right: 6vw;
+}
+
+.card-wide {
+  width: 520px;
+  max-width: 520px;
+}
+
+.facts {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.fact {
+  margin: 0;
+  padding: 12px 14px;
+  font: 400 14px/1.5 var(--body);
+  color: var(--ink);
+  background: rgba(156, 204, 101, 0.08);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+}
+
+.zones {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font: 400 13px/1.45 var(--body);
+  color: var(--muted);
+}
+
+.zones li::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 10px 1px 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 8px 16px;
+  margin: 18px 0 0;
+  font: 400 14px/1.45 var(--body);
+}
+
+.details dt {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+
+.details dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.details dd:last-of-type {
+  font: 400 26px/1 var(--display);
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+/* Photo strip: two slots, clipped; see PHOTO_* in ui.ts. */
+
+.deck {
+  position: relative;
+  width: 300px;
+  margin-top: 20px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.strip {
+  position: absolute;
+  inset: 0;
+  transition: transform 120ms linear;
+}
+
+.photo {
+  position: absolute;
+  left: 0;
+  margin: 0;
+  width: 300px;
+  height: 234px; /* PHOTO_FRAME in ui.ts */
+  background: #0c1116;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--anti-flicker);
+}
+
+.photo img {
+  display: block;
+  width: 300px;
+  height: 200px;
+  object-fit: cover;
+  background: #1a2128;
+}
+
+.photo figcaption {
+  height: 34px;
+  padding: 0 12px;
+  font: 400 12px/34px var(--body);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-right .deck {
+  margin-left: auto;
+}
+
+/* Summit moment */
+
+.vignette {
+  inset: 0;
+  background: radial-gradient(transparent 40%, rgba(0, 0, 0, 0.6));
+  opacity: 0;
+  visibility: hidden;
+}
+
+.summit {
+  left: 0;
+  right: 0;
+  bottom: calc(50% + 36px); /* sits just above the line tip at the summit */
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.75);
+}
+
+.summit-title {
+  margin: 0;
+  font: 400 clamp(96px, 14vw, 220px) / 0.9 var(--display);
+  letter-spacing: 0.04em;
+}
+
+.summit-sub {
+  margin: 8px 0 0;
+  font: 500 18px/1.4 var(--body);
+  color: var(--ink);
+}
+
+/* Day 6 + CTA */
+
+.day6 {
+  left: 50%;
+  top: 50%;
+  width: 560px;
+  padding: 36px 40px 28px;
+  text-align: center;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.cta {
+  display: inline-block;
+  margin: 28px 0 24px;
+  padding: 18px 44px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0b1a05;
+  font: 400 28px/1 var(--display);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(156, 204, 101, 0.35);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: filter 120ms linear;
+}
+
+.cta:hover {
+  filter: brightness(1.08);
+}
+
+.footer {
+  margin: 0;
+  font: 400 11px/1.5 var(--body);
+  color: var(--muted);
+}
+
+/* Progress bar + altitude */
+
+.progress {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 9px;
+  background: var(--muted);
+}
+
+.tick span {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  font: 500 11px/1 var(--body);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.altitude {
+  right: 24px;
+  bottom: 64px;
+  font: 400 28px/1 var(--display);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ---------- Map markers (HTML) ---------- */
+
+.hiker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 6px rgba(156, 204, 101, 0.25),
+    0 0 24px var(--accent);
+  visibility: hidden;
+}
+
+.hut {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 8px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  font: 500 12px/1 var(--body);
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.hut-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.hut-name {
+  color: var(--ink);
+}
+
+.hut-ele {
+  color: var(--muted);
+}

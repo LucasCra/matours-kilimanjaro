@@ -1,0 +1,14 @@
+{
+  "_source": "OpenStreetMap node coordinates (ODbL). Elevations in metres from OSM tags where present, otherwise commonly published values.",
+  "waypoints": [
+    {"id": "gate",     "name": "Marangu Gate",   "lon": 37.5176549, "lat": -3.2436469, "ele": 1860, "day": 1, "osm": "node/2142573962"},
+    {"id": "mandara",  "name": "Mandara Huts",   "lon": 37.5133562, "lat": -3.1816771, "ele": 2720, "day": 1, "osm": "node/2459235292"},
+    {"id": "maundi",   "name": "Maundi Crater",  "lon": 37.5193272, "lat": -3.1769259, "ele": 2772, "day": 1, "osm": "node/652426578", "side_trip": true},
+    {"id": "horombo",  "name": "Horombo Huts",   "lon": 37.4392595, "lat": -3.1400138, "ele": 3720, "day": 2, "osm": "node/2125844166"},
+    {"id": "zebra",    "name": "Zebra Rocks",    "lon": 37.4333444, "lat": -3.1227795, "ele": 4042, "day": 3, "osm": "node/652426716", "side_trip": true},
+    {"id": "kibo",     "name": "Kibo Hut",       "lon": 37.3894245, "lat": -3.0817675, "ele": 4720, "day": 4, "osm": "node/11921028630"},
+    {"id": "gilmans",  "name": "Gilman's Point", "lon": 37.3683329, "lat": -3.0744490, "ele": 5685, "day": 5, "osm": "node/652427765"},
+    {"id": "stella",   "name": "Stella Point",   "lon": 37.3626212, "lat": -3.0782335, "ele": 5744, "day": 5, "osm": "node/1925292955"},
+    {"id": "uhuru",    "name": "Uhuru Peak",     "lon": 37.3539987, "lat": -3.0764084, "ele": 5895, "day": 5, "osm": "node/32059197"}
+  ]
+}
