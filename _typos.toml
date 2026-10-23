@@ -1,0 +1,7 @@
+# Built site: the JavaScript here is minified third-party code (MapLibre), not prose.
+[type.js]
+check-file = false
+
+[type.minjs]
+extend-glob = ["*.mjs"]
+check-file = false
