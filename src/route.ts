@@ -29,7 +29,7 @@ function dist(a: LonLat, b: LonLat): number {
   return Math.hypot((b[0] - a[0]) * k, b[1] - a[1]);
 }
 
-export async function loadTrack(url = '/data/track.geojson'): Promise<Track> {
+export async function loadTrack(url = `${import.meta.env.BASE_URL}data/track.geojson`): Promise<Track> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`track: HTTP ${res.status}`);
   const gj = await res.json();

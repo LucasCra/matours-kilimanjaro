@@ -13,7 +13,7 @@ export interface Waypoint {
   side_trip?: boolean;
 }
 
-export async function loadWaypoints(url = '/data/waypoints.json'): Promise<Waypoint[]> {
+export async function loadWaypoints(url = `${import.meta.env.BASE_URL}data/waypoints.json`): Promise<Waypoint[]> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`waypoints: HTTP ${res.status}`);
   return (await res.json()).waypoints as Waypoint[];
