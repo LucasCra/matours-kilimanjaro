@@ -1,18 +1,9 @@
 import type { GeoJSONSource, Marker } from 'maplibre-gl';
 import './styles.css';
 import { cameraAt, lerp } from './camera';
-import {
-  ALTITUDE_PROFILE,
-  GATE,
-  MARKED_HUTS,
-  ROUTE_START,
-  SIDE_TRIPS,
-  loadWaypoints,
-  type LonLat,
-  type Waypoint,
-} from './content';
-import { EXAGGERATION, createHikerMarker, createHutMarker, createMap, lineData } from './map';
-import { hutFractions, loadRoute, routeFraction, slice, type Route } from './route';
+import { MARKERS, SIDE_TRIPS, SUMMITS, loadWaypoints, type LonLat, type Waypoint } from './content';
+import { EXAGGERATION, createHikerMarker, createHutMarker, createMap, lineData, multiLineData } from './map';
+import { loadTrack, profileAltitude, trackAt, type Track, type TrackState } from './route';
 import { startScrollLoop } from './scroll';
 import { buildUI } from './ui';
 
@@ -29,14 +20,13 @@ const map = createMap();
 map.on('error', (e) => console.error('map error:', e.error?.message ?? e));
 
 let styleReady = false;
-let route: Route | null = null;
-let hf: Record<string, number> = {};
+let track: Track | null = null;
 let wps: Record<string, Waypoint> = {};
 let hiker: Marker | null = null;
-let huts: { id: string; marker: Marker; el: HTMLElement }[] = [];
-let lastRouteF = -1;
+let labels: { el: HTMLElement; windows: [number, number][] }[] = [];
+let lastLineKey = '';
 let lastSideKey = '';
-let lastTip: { tip: LonLat; f: number } | null = null; // for the altitude refresh on 'idle'
+let lastState: TrackState | null = null; // for the altitude refresh on 'idle'
 
 const finite = (...xs: number[]) => xs.every(Number.isFinite);
 
@@ -45,24 +35,12 @@ function setVisible(node: HTMLElement, on: boolean) {
   if (node.style.visibility !== v) node.style.visibility = v;
 }
 
-// Altitude by linear interpolation of the known waypoint elevations along the route.
-function profileAltitude(f: number): number {
-  for (let i = 1; i < ALTITUDE_PROFILE.length; i++) {
-    const a = ALTITUDE_PROFILE[i - 1];
-    const b = ALTITUDE_PROFILE[i];
-    if (f <= hf[b] || i === ALTITUDE_PROFILE.length - 1) {
-      const t = Math.min(1, Math.max(0, (f - hf[a]) / (hf[b] - hf[a] || 1)));
-      return lerp(wps[a].ele, wps[b].ele, t);
-    }
-  }
-  return wps.gate.ele;
-}
-
 function sideTripLine(p: number): LonLat[] {
   for (const s of SIDE_TRIPS) {
     if (p < s.start || p > s.hold) continue;
     const a = wps[s.from];
     const b = wps[s.to];
+    if (!a || !b) return [];
     const t = Math.min(1, (p - s.start) / (s.end - s.start));
     return [
       [a.lon, a.lat],
@@ -75,21 +53,20 @@ function sideTripLine(p: number): LonLat[] {
 function frame(p: number) {
   ui.update(p);
 
-  const onRoute = p >= ROUTE_START;
-  const f = route ? routeFraction(p, hf) : 0;
-  const line = route ? slice(route, f) : [];
-  const tip: LonLat = line.length ? line[line.length - 1] : GATE;
+  const st = track ? trackAt(track, p) : null;
+  const tip = st?.tip ?? null;
 
-  const cam = cameraAt(p);
-  const center = onRoute || !cam.center ? tip : cam.center;
-  if (finite(center[0], center[1], cam.zoom, cam.pitch, cam.bearing)) {
-    map.jumpTo({ center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing });
+  const cam = cameraAt(p, tip);
+  if (cam.center && finite(cam.center[0], cam.center[1], cam.zoom, cam.pitch, cam.bearing)) {
+    map.jumpTo({ center: cam.center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing });
   }
 
-  if (styleReady && route) {
-    if (f !== lastRouteF) {
-      lastRouteF = f;
-      map.getSource<GeoJSONSource>('route')?.setData(lineData(onRoute ? line : []));
+  if (styleReady && st) {
+    const lineKey = `${st.step}:${st.f}`;
+    if (lineKey !== lastLineKey) {
+      lastLineKey = lineKey;
+      map.getSource<GeoJSONSource>('route')?.setData(multiLineData(st.trails));
+      map.getSource<GeoJSONSource>('drive')?.setData(multiLineData(st.drives));
     }
     const side = sideTripLine(p);
     const sideKey = side.flat().join(',');
@@ -100,19 +77,23 @@ function frame(p: number) {
   }
 
   if (hiker) {
-    hiker.setLngLat(tip); // after jumpTo, in the same frame, so the dot never lags the line
-    setVisible(hiker.getElement(), onRoute);
+    if (tip) hiker.setLngLat(tip); // after jumpTo, in the same frame, so the dot never lags the line
+    setVisible(hiker.getElement(), tip != null);
   }
-  for (const h of huts) setVisible(h.el, onRoute && f >= hf[h.id] - 1e-6);
+  // Labels step aside while a summit headline covers the tip.
+  const summitShowing = SUMMITS.some((s) => p > s.fadeIn[0] && p < s.fadeOut[1]);
+  for (const l of labels) setVisible(l.el, !summitShowing && l.windows.some(([a, b]) => p >= a && p < b));
 
-  lastTip = onRoute && route ? { tip, f } : null;
+  lastState = st;
   updateAltitude();
 }
 
+// Altitude shows on foot only: terrain under the tip, or the waypoint profile until tiles arrive.
 function updateAltitude() {
-  if (!lastTip) return;
-  const raw = map.queryTerrainElevation(lastTip.tip);
-  ui.setAltitude(raw != null && Number.isFinite(raw) ? raw / EXAGGERATION : profileAltitude(lastTip.f));
+  const st = lastState;
+  if (!st?.tip || st.leg?.kind !== 'trail') return ui.setAltitude(null);
+  const raw = map.queryTerrainElevation(st.tip);
+  ui.setAltitude(raw != null && Number.isFinite(raw) ? raw / EXAGGERATION : profileAltitude(st.leg, st.f, wps));
 }
 
 const loop = startScrollLoop(frame);
@@ -124,21 +105,14 @@ map.once('load', () => {
 // Terrain tiles arrive asynchronously; refresh the altitude readout once they do.
 map.on('idle', updateAltitude);
 
-Promise.all([loadRoute(), loadWaypoints()])
-  .then(([r, waypoints]) => {
-    route = r;
-    hf = hutFractions(r, waypoints);
+Promise.all([loadTrack(), loadWaypoints()])
+  .then(([t, waypoints]) => {
+    track = t;
     wps = Object.fromEntries(waypoints.map((w) => [w.id, w]));
-    console.info(
-      'hut fractions',
-      ['gate', 'mandara', 'horombo', 'kibo', 'gilmans', 'uhuru'].map((id) => `${id} ${hf[id].toFixed(3)}`).join(' · '),
-    );
-    hiker = createHikerMarker(map, GATE);
-    huts = MARKED_HUTS.map((id) => {
-      const marker = createHutMarker(map, wps[id]);
-      return { id, marker, el: marker.getElement() };
-    });
-    lastRouteF = -1;
+    console.info('track legs', t.legs.map((l) => `${l.id} (${l.kind})`).join(' · '));
+    hiker = createHikerMarker(map, t.legs[0].coords[0]);
+    labels = MARKERS.filter(([id]) => wps[id]).map(([id, windows]) => ({ el: createHutMarker(map, wps[id]).getElement(), windows }));
+    lastLineKey = '';
     lastSideKey = '';
     loop.redraw();
   })

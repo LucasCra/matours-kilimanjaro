@@ -58,11 +58,19 @@ export function createMap(): Map {
           attribution: USE_EOX_IMAGERY ? EOX_ATTRIBUTION : ESRI_ATTRIBUTION,
         },
         dem: USE_AWS_TERRAIN ? AWS_DEM : MAPTERHORN_DEM,
-        route: { type: 'geojson', data: EMPTY, attribution: '© OpenStreetMap contributors' },
+        route: { type: 'geojson', data: EMPTY, attribution: '© OpenStreetMap contributors' }, // trails walked
+        drive: { type: 'geojson', data: EMPTY }, // road transfers and safari drives
         side: { type: 'geojson', data: EMPTY },
       },
       layers: [
         { id: 'sat', type: 'raster', source: 'sat' },
+        {
+          id: 'drive',
+          type: 'line',
+          source: 'drive',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': '#f4f7f2', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [0.1, 2] },
+        },
         {
           id: 'route-glow',
           type: 'line',
@@ -98,8 +106,13 @@ export function createMap(): Map {
 }
 
 export function lineData(coords: [number, number][]): FeatureCollection {
-  return coords.length > 1
-    ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }] }
+  return multiLineData([coords]);
+}
+
+export function multiLineData(lines: [number, number][][]): FeatureCollection {
+  const parts = lines.filter((l) => l.length > 1);
+  return parts.length
+    ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: parts } }] }
     : EMPTY;
 }
 
@@ -117,6 +130,6 @@ export function createHutMarker(map: Map, w: Waypoint): Marker {
   el.className = 'hut';
   el.innerHTML = '<span class="hut-dot"></span><span class="hut-name"></span><span class="hut-ele"></span>';
   el.querySelector('.hut-name')!.textContent = w.name;
-  el.querySelector('.hut-ele')!.textContent = formatMetres(w.ele);
+  el.querySelector('.hut-ele')!.textContent = w.ele == null ? '' : formatMetres(w.ele);
   return new Marker({ element: el, anchor: 'left', offset: [10, 0] }).setLngLat([w.lon, w.lat]).addTo(map);
 }

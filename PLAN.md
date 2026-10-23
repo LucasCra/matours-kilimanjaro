@@ -1,3 +1,12 @@
+> **Update (Oct 2026): content and track replaced.** The page now follows the 19-day Karavaniers
+> itinerary "Meru et les 3 sommets du Kilimandjaro": Mount Meru, then Kilimanjaro by the Shira route,
+> the Northern Circuit and a night at Crater Camp, then a Serengeti and Ngorongoro safari. The Marangu
+> copy, waypoints, chapter windows and keyframes below are historical. The authoritative numbers now
+> live in `src/content.ts` (`TIMELINE`, `KEYFRAMES`, `CHAPTERS`, `MARKERS`), the route in
+> `public/data/track.geojson` (built by `tools/build_track.py`, see `tools/README.md`), and the scroll
+> track is `3600vh`. The core mechanic is unchanged: scroll-scrubbed, map not interactive, camera on
+> the line tip along every trail leg. Road legs are dashed and use fixed camera keyframes.
+
 # Matours — Kilimanjaro scroll-driven 3D landing page
 
 **Implementation specification for a coding agent.** This document is the only input: it contains

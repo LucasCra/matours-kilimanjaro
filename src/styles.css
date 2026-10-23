@@ -29,7 +29,7 @@ body {
 }
 
 #track {
-  height: 2000vh; /* plan said 1600vh; lengthened so photos and cards hold ≥ ~800px of scroll */
+  height: 3600vh; /* 19 days, two treks and a safari; keeps each day card on screen for ≥ ~1,000 px of scroll */
 }
 
 /* ---------- Background layers ---------- */

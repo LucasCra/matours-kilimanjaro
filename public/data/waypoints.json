@@ -1,14 +1,28 @@
 {
-  "_source": "OpenStreetMap node coordinates (ODbL). Elevations in metres from OSM tags where present, otherwise commonly published values.",
+  "_source": "Coordinates from OpenStreetMap (ODbL), element ids in `osm`. Elevations in metres follow the Karavaniers itinerary where it gives one, otherwise OSM tags or commonly published values. null = no elevation shown.",
   "waypoints": [
-    {"id": "gate",     "name": "Marangu Gate",   "lon": 37.5176549, "lat": -3.2436469, "ele": 1860, "day": 1, "osm": "node/2142573962"},
-    {"id": "mandara",  "name": "Mandara Huts",   "lon": 37.5133562, "lat": -3.1816771, "ele": 2720, "day": 1, "osm": "node/2459235292"},
-    {"id": "maundi",   "name": "Maundi Crater",  "lon": 37.5193272, "lat": -3.1769259, "ele": 2772, "day": 1, "osm": "node/652426578", "side_trip": true},
-    {"id": "horombo",  "name": "Horombo Huts",   "lon": 37.4392595, "lat": -3.1400138, "ele": 3720, "day": 2, "osm": "node/2125844166"},
-    {"id": "zebra",    "name": "Zebra Rocks",    "lon": 37.4333444, "lat": -3.1227795, "ele": 4042, "day": 3, "osm": "node/652426716", "side_trip": true},
-    {"id": "kibo",     "name": "Kibo Hut",       "lon": 37.3894245, "lat": -3.0817675, "ele": 4720, "day": 4, "osm": "node/11921028630"},
-    {"id": "gilmans",  "name": "Gilman's Point", "lon": 37.3683329, "lat": -3.0744490, "ele": 5685, "day": 5, "osm": "node/652427765"},
-    {"id": "stella",   "name": "Stella Point",   "lon": 37.3626212, "lat": -3.0782335, "ele": 5744, "day": 5, "osm": "node/1925292955"},
-    {"id": "uhuru",    "name": "Uhuru Peak",     "lon": 37.3539987, "lat": -3.0764084, "ele": 5895, "day": 5, "osm": "node/32059197"}
+    {"id": "jro",         "name": "Kilimanjaro Airport", "lon": 37.0720300, "lat": -3.4284290, "ele": null, "osm": "way/43271388"},
+    {"id": "arusha",      "name": "Arusha",              "lon": 36.6880790, "lat": -3.3696830, "ele": null, "osm": "node/255603098"},
+    {"id": "momella",     "name": "Momella Gate",        "lon": 36.8496370, "lat": -3.2334460, "ele": 1500, "osm": "node/340234445"},
+    {"id": "miriakamba",  "name": "Miriakamba Hut",      "lon": 36.7995990, "lat": -3.2292550, "ele": 2500, "osm": "way/499720556"},
+    {"id": "saddle",      "name": "Saddle Hut",          "lon": 36.7733220, "lat": -3.2180990, "ele": 3500, "osm": "way/499720626"},
+    {"id": "littlemeru",  "name": "Little Meru",         "lon": 36.7740930, "lat": -3.2125930, "ele": 3820, "osm": "node/11375063172", "side_trip": true},
+    {"id": "meru",        "name": "Mount Meru summit",   "lon": 36.7492493, "lat": -3.2431908, "ele": 4565, "osm": "node/10669155921"},
+    {"id": "londorosi",   "name": "Londorossi Gate",     "lon": 37.1351380, "lat": -2.9618820, "ele": 2250, "osm": "node/12223874664"},
+    {"id": "morum",       "name": "Shira trailhead",     "lon": 37.2307300, "lat": -2.9865980, "ele": 3400, "osm": "node/12223883631"},
+    {"id": "shira",       "name": "Shira Plateau camp",  "lon": 37.2292440, "lat": -3.0131430, "ele": 3500, "osm": "node/12223869778"},
+    {"id": "moir",        "name": "Moir camp",           "lon": 37.2995510, "lat": -3.0423900, "ele": 4100, "osm": "way/499125590"},
+    {"id": "thirdcave",   "name": "Third Cave camp",     "lon": 37.4109550, "lat": -3.0444640, "ele": 3950, "osm": "node/10088755017"},
+    {"id": "school",      "name": "School Hut",          "lon": 37.3863320, "lat": -3.0682100, "ele": 4700, "osm": "node/12791443058"},
+    {"id": "gilmans",     "name": "Gilman's Point",      "lon": 37.3683330, "lat": -3.0744490, "ele": 5685, "osm": "node/652427765"},
+    {"id": "crater",      "name": "Crater Camp",         "lon": 37.3519380, "lat": -3.0729900, "ele": 5700, "osm": "way/498670438"},
+    {"id": "furtwangler", "name": "Furtwängler Glacier", "lon": 37.3516520, "lat": -3.0705650, "ele": 5740, "osm": "way/498670437", "side_trip": true},
+    {"id": "uhuru",       "name": "Uhuru Peak",          "lon": 37.3539987, "lat": -3.0764084, "ele": 5895, "osm": "node/32059197"},
+    {"id": "stella",      "name": "Stella Point",        "lon": 37.3626210, "lat": -3.0782340, "ele": 5744, "osm": "node/1925292955"},
+    {"id": "barafu",      "name": "Barafu Camp",         "lon": 37.3785820, "lat": -3.0998710, "ele": 4673, "osm": "way/499687559"},
+    {"id": "mwekacamp",   "name": "Mweka Camp",          "lon": 37.3671730, "lat": -3.1562610, "ele": 3100, "osm": "node/11914577587"},
+    {"id": "mwekagate",   "name": "Mweka Gate",          "lon": 37.3415610, "lat": -3.2195360, "ele": 1640, "osm": "node/6252257213"},
+    {"id": "seronera",    "name": "Serengeti",           "lon": 34.8190890, "lat": -2.4467150, "ele": null, "osm": "node/6018361935"},
+    {"id": "ngorongoro",  "name": "Ngorongoro Crater",   "lon": 35.5800000, "lat": -3.1750000, "ele": null, "osm": "way/43196959"}
   ]
 }

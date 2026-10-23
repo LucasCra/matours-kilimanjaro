@@ -1,10 +1,27 @@
-import { lerp } from './camera';
-import { ROUTE_START, SEGMENTS, type LonLat, type Waypoint } from './content';
+import { clamp01, lerp } from './camera';
+import { TIMELINE, type LonLat, type Waypoint } from './content';
 
-export interface Route {
+export interface Leg {
+  id: string;
+  kind: 'trail' | 'drive';
   coords: LonLat[];
   cum: number[]; // cumulative distance at each vertex (degrees, equirectangular)
   total: number;
+  stops: Record<string, number>; // waypoint id → fraction of this leg, computed by tools/build_track.py
+}
+
+export interface Track {
+  legs: Leg[];
+  byId: Record<string, Leg>;
+}
+
+export interface TrackState {
+  step: number; // index into TIMELINE, -1 before the trip starts
+  leg: Leg | null; // the leg the tip is on
+  f: number; // fraction of that leg
+  tip: LonLat | null;
+  trails: LonLat[][];
+  drives: LonLat[][];
 }
 
 function dist(a: LonLat, b: LonLat): number {
@@ -12,51 +29,28 @@ function dist(a: LonLat, b: LonLat): number {
   return Math.hypot((b[0] - a[0]) * k, b[1] - a[1]);
 }
 
-export async function loadRoute(url = '/data/route-marangu.geojson'): Promise<Route> {
+export async function loadTrack(url = '/data/track.geojson'): Promise<Track> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`route: HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`track: HTTP ${res.status}`);
   const gj = await res.json();
-  const coords: LonLat[] = gj.features[0].geometry.coordinates;
-  const cum = [0];
-  for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1], coords[i]));
-  return { coords, cum, total: cum[cum.length - 1] };
-}
-
-// Fraction of the route at the vertex nearest to `pt`.
-function fractionNear(route: Route, pt: LonLat): number {
-  let best = 0;
-  let bestD = Infinity;
-  route.coords.forEach((c, i) => {
-    const d = dist(c, pt);
-    if (d < bestD) {
-      bestD = d;
-      best = i;
-    }
+  const legs: Leg[] = gj.features.map((ft: any) => {
+    const coords: LonLat[] = ft.geometry.coordinates;
+    const cum = [0];
+    for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1], coords[i]));
+    return { id: ft.properties.id, kind: ft.properties.kind, coords, cum, total: cum[cum.length - 1], stops: ft.properties.stops };
   });
-  return route.cum[best] / route.total;
-}
-
-export function hutFractions(route: Route, waypoints: Waypoint[]): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const w of waypoints) out[w.id] = fractionNear(route, [w.lon, w.lat]);
-  out.gate = 0;
-  out.uhuru = 1;
-  return out;
-}
-
-// Scroll progress → fraction of the route drawn, piecewise linear per day.
-export function routeFraction(p: number, hf: Record<string, number>): number {
-  if (p <= ROUTE_START) return 0;
-  for (const [a, b, h0, h1] of SEGMENTS) {
-    if (p <= b) return lerp(hf[h0], hf[h1], (p - a) / (b - a));
+  const byId = Object.fromEntries(legs.map((l) => [l.id, l]));
+  for (const [, , id, s0, s1] of TIMELINE) {
+    const leg = byId[id];
+    if (!leg || leg.stops[s0] == null || leg.stops[s1] == null) throw new Error(`timeline: unknown leg/stop ${id} ${s0}→${s1}`);
   }
-  return 1;
+  return { legs, byId };
 }
 
-// The first `f` of the line by distance; the last point is interpolated so the tip moves continuously.
-export function slice(route: Route, f: number): LonLat[] {
-  const { coords, cum, total } = route;
-  const target = Math.min(1, Math.max(0, f)) * total;
+// The first `f` of the leg by distance; the last point is interpolated so the tip moves continuously.
+export function slice(leg: Leg, f: number): LonLat[] {
+  const { coords, cum, total } = leg;
+  const target = clamp01(f) * total;
   let lo = 0;
   let hi = coords.length - 1;
   while (lo < hi) {
@@ -72,4 +66,42 @@ export function slice(route: Route, f: number): LonLat[] {
     out.push([lerp(x1, x2, t), lerp(y1, y2, t)]);
   }
   return out;
+}
+
+// Scroll progress → what is drawn. Legs before the current one are complete; between two steps
+// the tip holds where the previous step ended.
+export function trackAt(track: Track, p: number): TrackState {
+  let step = -1;
+  while (step + 1 < TIMELINE.length && TIMELINE[step + 1][0] <= p) step++;
+  if (step < 0) return { step, leg: null, f: 0, tip: null, trails: [], drives: [] };
+
+  const [a, b, id, s0, s1] = TIMELINE[step];
+  const leg = track.byId[id];
+  const f = lerp(leg.stops[s0], leg.stops[s1], clamp01((p - a) / (b - a)));
+  const trails: LonLat[][] = [];
+  const drives: LonLat[][] = [];
+  let tip: LonLat | null = null;
+  for (const l of track.legs) {
+    const line = l === leg ? slice(l, f) : l.coords;
+    (l.kind === 'trail' ? trails : drives).push(line);
+    if (l === leg) {
+      tip = line[line.length - 1];
+      break;
+    }
+  }
+  return { step, leg, f, tip, trails, drives };
+}
+
+// Altitude by linear interpolation of known waypoint elevations along the current leg.
+export function profileAltitude(leg: Leg, f: number, wps: Record<string, Waypoint>): number | null {
+  const pts = Object.entries(leg.stops)
+    .map(([id, fr]) => [fr, wps[id]?.ele] as const)
+    .filter((x): x is readonly [number, number] => x[1] != null)
+    .sort((x, y) => x[0] - y[0]);
+  if (!pts.length) return null;
+  if (f <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (f <= pts[i][0]) return lerp(pts[i - 1][1], pts[i][1], (f - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0] || 1));
+  }
+  return pts[pts.length - 1][1];
 }

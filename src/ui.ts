@@ -1,24 +1,15 @@
 import { clamp01 } from './camera';
-import {
-  CHAPTERS,
-  DAY6,
-  DAY_TICKS,
-  HERO,
-  ROUTE_START,
-  STARS_FADE,
-  SUMMIT,
-  photoUrl,
-  type Chapter,
-} from './content';
+import { CHAPTERS, DAY_TICKS, FINALE, HERO, STARS_FADE, SUMMITS, photoUrl, type Chapter } from './content';
 import { formatMetres } from './map';
 
 const ramp = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
 
 // Neighbouring chapter cards sit on opposite sides, so they cross-fade: the next card fades in
 // before the boundary, both stay together briefly, then the previous one fades out.
-const CARD_IN = 0.012;
-const CARD_TOGETHER = 0.006;
-const CARD_OUT = 0.012;
+// Sized for the 3600vh track: 0.007 of progress ≈ 270 px of scroll.
+const CARD_IN = 0.007;
+const CARD_TOGETHER = 0.004;
+const CARD_OUT = 0.007;
 
 // Photos run on a two-slot strip: each new photo fills the next slot; once both are taken,
 // the strip moves up one slot, the oldest photo fades out at the top and the new one enters below.
@@ -144,21 +135,24 @@ export function buildUI(root: HTMLElement, stars: HTMLElement): UI {
   // Chapter cards
   const cards = CHAPTERS.map(buildCard);
 
-  // Summit moment
+  // Summit moments
   const vignette = el('div', 'vignette');
-  const summit = el('section', 'summit');
-  summit.append(el('h2', 'summit-title', SUMMIT.title), el('p', 'summit-sub', SUMMIT.sub));
+  const summits = SUMMITS.map((s) => {
+    const node = el('section', 'summit');
+    node.append(el('h2', 'summit-title', s.title), el('p', 'summit-sub', s.sub));
+    return { node, s };
+  });
 
-  // Day 6 + CTA
+  // Finale + CTA
   const day6 = el('section', 'day6');
-  const cta = el('a', 'cta', DAY6.cta);
-  cta.href = DAY6.href;
+  const cta = el('a', 'cta', FINALE.cta);
+  cta.href = FINALE.href;
   day6.append(
-    el('p', 'eyebrow', DAY6.eyebrow),
-    el('h2', 'card-title', DAY6.title),
-    el('p', 'body', DAY6.body),
+    el('p', 'eyebrow', FINALE.eyebrow),
+    el('h2', 'card-title', FINALE.title),
+    el('p', 'body', FINALE.body),
     cta,
-    el('p', 'footer', DAY6.footer),
+    el('p', 'footer', FINALE.footer),
   );
 
   // Progress bar, day ticks, altitude
@@ -173,7 +167,7 @@ export function buildUI(root: HTMLElement, stars: HTMLElement): UI {
   }
   const altitude = el('div', 'altitude');
 
-  root.append(vignette, hero, ...cards.map((c) => c.node), summit, day6, altitude, bar);
+  root.append(vignette, hero, ...cards.map((c) => c.node), ...summits.map((x) => x.node), day6, altitude, bar);
 
   let lastAltitude = '';
 
@@ -182,9 +176,21 @@ export function buildUI(root: HTMLElement, stars: HTMLElement): UI {
       show(starCanvas, 1 - ramp(p, STARS_FADE[0], STARS_FADE[1]));
       show(hero, 1 - ramp(p, HERO.fadeOut[0], HERO.fadeOut[1]));
 
+      // Summit headlines sit in the middle of the screen; side cards step aside while they show.
+      let flash = 0;
+      let summitOn = 0;
+      for (const { node, s } of summits) {
+        const sIn = ramp(p, s.fadeIn[0], s.fadeIn[1]);
+        const o = Math.min(sIn, 1 - ramp(p, s.fadeOut[0], s.fadeOut[1]));
+        show(node, o);
+        summitOn = Math.max(summitOn, o);
+        flash = Math.max(flash, Math.sin(Math.PI * sIn));
+      }
+      show(vignette, flash);
+
       for (const { node, fadeIn, fadeOut, strip, photos } of cards) {
         const fi = ramp(p, fadeIn[0], fadeIn[1]);
-        const o = Math.min(fi, 1 - ramp(p, fadeOut[0], fadeOut[1]));
+        const o = Math.min(fi, 1 - ramp(p, fadeOut[0], fadeOut[1])) * (1 - summitOn);
         show(node, o, `translateY(calc(-50% + ${(24 * (1 - fi)).toFixed(2)}px))`);
         if (!strip) continue;
         const enter = photos.map((ph) => ramp(p, ph.at, ph.at + PHOTO_IN));
@@ -197,20 +203,18 @@ export function buildUI(root: HTMLElement, stars: HTMLElement): UI {
         });
       }
 
-      const sIn = ramp(p, SUMMIT.fadeIn[0], SUMMIT.fadeIn[1]);
-      show(summit, Math.min(sIn, 1 - ramp(p, SUMMIT.fadeOut[0], SUMMIT.fadeOut[1])));
-      show(vignette, Math.sin(Math.PI * sIn));
-
-      const d6 = ramp(p, DAY6.fadeIn[0], DAY6.fadeIn[1]);
+      const d6 = ramp(p, FINALE.fadeIn[0], FINALE.fadeIn[1]);
       show(day6, d6, `translate(-50%, calc(-50% + ${(24 * (1 - d6)).toFixed(2)}px))`);
       cta.style.pointerEvents = d6 > 0.5 ? 'auto' : 'none';
 
       fill.style.transform = `scaleX(${p})`;
-      show(altitude, p >= ROUTE_START ? 1 : 0);
     },
     setAltitude(metres) {
       const text = metres == null ? '' : formatMetres(Math.round(metres / 10) * 10);
-      if (text !== lastAltitude) altitude.textContent = lastAltitude = text;
+      if (text !== lastAltitude) {
+        altitude.textContent = lastAltitude = text;
+        show(altitude, text ? 1 : 0);
+      }
     },
   };
 }
